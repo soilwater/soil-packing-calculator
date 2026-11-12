@@ -1,0 +1,5 @@
+# Local tool settings
+.claude/
+
+# Reference papers and lab documents (not for redistribution)
+references/
