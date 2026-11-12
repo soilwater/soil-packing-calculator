@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Soil Packing Calculator</title>
+  <meta name="description" content="Calculate the soil and water needed to pack containers at a target bulk density and water content.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Shared SVG definitions (arrowheads for dimension lines) -->
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,1.5 L10,5 L0,8.5 z" class="arrowhead"/>
+    </marker>
+  </defs>
+</svg>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>Soil Packing Calculator</h1>
+    <p class="lede">How much soil and water to pack each container at a target bulk density and water content.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ===================== INPUTS ===================== -->
+  <form id="form" class="card inputs" autocomplete="off" novalidate>
+    <div class="input-groups">
+
+      <!-- 1. Container -->
+      <section class="group">
+        <h2 class="group-title"><span class="step">1</span>Container</h2>
+
+        <div class="segmented" role="radiogroup" aria-label="Container shape">
+          <label><input type="radio" name="shape" value="cylinder" checked><span>Cylinder</span></label>
+          <label><input type="radio" name="shape" value="box"><span>Box</span></label>
+        </div>
+
+        <div class="container-row">
+          <figure class="sketch" data-shape="cylinder">
+            <svg viewBox="0 0 250 220" role="img" aria-label="Cylinder with inner diameter d and fill height h">
+              <path class="soil" d="M65,82 L65,160 A60,13 0 0 0 185,160 L185,82 A60,13 0 0 0 65,82 Z"/>
+              <ellipse class="soil-top" cx="125" cy="82" rx="60" ry="13"/>
+              <ellipse class="outline" cx="125" cy="50" rx="60" ry="13"/>
+              <path class="outline" d="M65,50 L65,160 A60,13 0 0 0 185,160 L185,50"/>
+              <path class="ext" d="M65,166 V196 M185,166 V196 M190,82 H218 M190,160 H218"/>
+              <path class="dim" d="M68,190 H182"/>
+              <path class="dim" d="M212,85 V157"/>
+              <text class="dim-label" x="125" y="212">d</text>
+              <text class="dim-label" x="230" y="126">h</text>
+            </svg>
+          </figure>
+          <figure class="sketch" data-shape="box" hidden>
+            <svg viewBox="0 0 250 220" role="img" aria-label="Box with inner length L, width W and fill height h">
+              <path class="soil" d="M55,92 H165 V170 H55 Z"/>
+              <path class="soil-side" d="M165,92 L205,64 V142 L165,170 Z"/>
+              <path class="soil-top" d="M55,92 H165 L205,64 H95 Z"/>
+              <path class="outline" d="M55,60 H165 V170 H55 Z M165,60 L205,32 V142 L165,170 M55,60 L95,32 H205 M95,32 V64"/>
+              <path class="ext" d="M55,176 V200 M165,176 V200 M49,92 H24 M49,170 H24 M167.9,174.1 L177.6,188 M207.9,146.1 L217.6,160"/>
+              <path class="dim" d="M58,194 H162"/>
+              <path class="dim" d="M30,95 V167"/>
+              <path class="dim" d="M177.8,183 L212.8,158.4"/>
+              <text class="dim-label" x="110" y="214">L</text>
+              <text class="dim-label" x="16" y="135">h</text>
+              <text class="dim-label" x="207" y="189">W</text>
+            </svg>
+          </figure>
+
+          <div class="dims">
+            <div data-shape="cylinder">
+              <label class="field"><span>Inner diameter <i>d</i> (cm)</span><input type="number" name="cylD" step="any" min="0" inputmode="decimal" placeholder="e.g., 10"></label>
+              <label class="field"><span>Fill height <i>h</i> (cm)</span><input type="number" name="cylH" step="any" min="0" inputmode="decimal" placeholder="e.g., 12"></label>
+            </div>
+            <div data-shape="box" hidden>
+              <label class="field"><span>Inner length <i>L</i> (cm)</span><input type="number" name="boxL" step="any" min="0" inputmode="decimal" placeholder="e.g., 12"></label>
+              <label class="field"><span>Inner width <i>W</i> (cm)</span><input type="number" name="boxW" step="any" min="0" inputmode="decimal" placeholder="e.g., 12"></label>
+              <label class="field"><span>Fill height <i>h</i> (cm)</span><input type="number" name="boxH" step="any" min="0" inputmode="decimal" placeholder="e.g., 4"></label>
+            </div>
+          </div>
+        </div>
+        <p class="hint">Measure the inside of the container. Fill height is how high the soil will go.</p>
+      </section>
+
+      <!-- 2. Treatments -->
+      <section class="group">
+        <h2 class="group-title"><span class="step">2</span>Targets</h2>
+
+        <label class="field">
+          <span>Bulk density (g/cm³)</span>
+          <input type="text" name="densities" inputmode="decimal" placeholder="e.g., 1.30">
+        </label>
+        <p class="hint">Mass of dry soil per volume. Most packed soils: 1.1–1.5.</p>
+
+        <div class="field">
+          <span id="mtypeLabel">Water content given as</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="mtypeLabel">
+            <label><input type="radio" name="mtype" value="vol" checked><span>Volumetric</span></label>
+            <label><input type="radio" name="mtype" value="grav"><span>Gravimetric</span></label>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Water content levels (<span id="levelsUnit">cm³/cm³</span>)</span>
+          <input type="text" name="levels" inputmode="decimal" placeholder="e.g., 0.10, 0.20, 0.30">
+        </label>
+        <p class="hint">Volumetric: cm³ of water per cm³ of soil. Gravimetric: g of water per g of dry soil. Use fractions (20% = 0.20); separate several values with commas.</p>
+      </section>
+
+      <!-- 3. Soil & packing -->
+      <section class="group">
+        <h2 class="group-title"><span class="step">3</span>Soil and packing</h2>
+
+        <div class="field">
+          <label for="w0"><span>Water content of your dry soil (g/g)</span></label>
+          <div class="input-with-btn">
+            <input type="number" id="w0" name="w0" step="any" min="0" inputmode="decimal" placeholder="e.g., 0.02">
+            <button type="button" class="btn btn-small btn-outline" id="openW0">Measure it</button>
+          </div>
+        </div>
+        <p class="hint">Air-dry soil still holds a little water, usually 0.01–0.04 g/g. Enter 0 if the soil was oven-dried.</p>
+
+        <div class="field-grid">
+          <label class="field"><span>Packing layers</span><input type="number" name="layers" step="1" min="1" max="20" inputmode="numeric" aria-describedby="layerExplain layerHint"></label>
+          <label class="field"><span>Replicates</span><input type="number" name="reps" step="1" min="1" inputmode="numeric"></label>
+        </div>
+        <p class="hint" id="layerExplain"><b>Packing layers are not different soils.</b> The same mix is added in a few thin portions, each pressed down to a line. This keeps the bulk density even from top to bottom.</p>
+        <p class="hint" id="layerHint">Layers 3–5 cm thick work best.</p>
+      </section>
+    </div>
+
+    <div id="formErrors"></div>
+
+    <div class="form-actions">
+      <button type="button" class="link-btn" id="exampleBtn">Fill in an example</button>
+      <button type="button" class="link-btn" id="resetBtn">Clear</button>
+      <button type="submit" class="btn btn-primary" id="calcBtn">Calculate</button>
+    </div>
+  </form>
+
+  <!-- ===================== RESULTS ===================== -->
+  <section class="results" id="results" hidden aria-live="polite">
+    <div class="stale-note" id="staleNote" hidden>Inputs changed. Press <b>Calculate</b> to update.</div>
+
+    <div class="card">
+      <div class="results-head">
+        <h2>What to weigh</h2>
+        <div class="actions">
+          <button type="button" class="btn btn-small btn-outline" id="csvBtn">Download CSV</button>
+          <button type="button" class="btn btn-small btn-primary" id="pdfBtn">Download PDF</button>
+        </div>
+      </div>
+      <p class="summary-line" id="summaryLine"></p>
+      <div id="alerts"></div>
+      <div class="stats" id="stats"></div>
+      <div id="tables"></div>
+      <p class="hint">The PDF includes the steps and a record sheet for the final check. In the print window, choose “Save as PDF”.</p>
+    </div>
+
+    <div class="results-lower">
+      <div class="card">
+        <h2>Steps</h2>
+        <ol class="protocol" id="protocol"></ol>
+      </div>
+
+      <div class="side-col">
+        <div class="card tips">
+          <h2>Tips</h2>
+          <ul id="tipsList"></ul>
+        </div>
+
+        <details class="card equations">
+          <summary><h2>How it's calculated</h2></summary>
+          <table class="eq-table">
+            <tbody>
+              <tr><td>Dry soil</td><td><var>M</var><sub>s</sub> = ρ<sub>b</sub> × <var>V</var></td></tr>
+              <tr><td>Gravimetric water</td><td><var>w</var> = θ ÷ ρ<sub>b</sub></td></tr>
+              <tr><td>Soil to weigh</td><td><var>M</var><sub>s</sub> × (1 + <var>w</var><sub>0</sub>)</td></tr>
+              <tr><td>Water to add</td><td><var>M</var><sub>s</sub> × (<var>w</var> − <var>w</var><sub>0</sub>)</td></tr>
+            </tbody>
+          </table>
+          <p class="hint"><var>V</var> = soil volume (cm³), θ = volumetric water content, <var>w</var><sub>0</sub> = water content of the dry soil. Water density is taken as 1 g/cm³.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===================== AIR-DRY WATER CONTENT MODAL ===================== -->
+<dialog id="w0Dialog" aria-labelledby="w0Title">
+  <form method="dialog" class="dialog-body">
+    <div class="dialog-head">
+      <h2 id="w0Title">Measure the water content of air-dry soil</h2>
+      <button type="submit" value="cancel" class="icon-btn" aria-label="Close">×</button>
+    </div>
+    <ol class="mini-steps">
+      <li>Weigh an empty can. Do not tare the scale.</li>
+      <li>Add about 50 g of your air-dry soil and weigh again.</li>
+      <li>Dry at 105 °C for 48 h and weigh again.</li>
+      <li>Do 3 cans and enter the masses (g).</li>
+    </ol>
+    <div class="w0-table" role="table" aria-label="Can masses">
+      <div class="w0-row w0-head" role="row">
+        <span role="columnheader">Can</span>
+        <span role="columnheader">Empty can</span>
+        <span role="columnheader">Can + air-dry soil</span>
+        <span role="columnheader">Can + oven-dry soil</span>
+        <span role="columnheader">w (g/g)</span>
+      </div>
+      <div class="w0-row" role="row">
+        <span role="cell">1</span>
+        <input type="number" step="any" data-k="can" aria-label="Can 1 empty mass">
+        <input type="number" step="any" data-k="wet" aria-label="Can 1 with air-dry soil">
+        <input type="number" step="any" data-k="dry" aria-label="Can 1 with oven-dry soil">
+        <output role="cell"></output>
+      </div>
+      <div class="w0-row" role="row">
+        <span role="cell">2</span>
+        <input type="number" step="any" data-k="can" aria-label="Can 2 empty mass">
+        <input type="number" step="any" data-k="wet" aria-label="Can 2 with air-dry soil">
+        <input type="number" step="any" data-k="dry" aria-label="Can 2 with oven-dry soil">
+        <output role="cell"></output>
+      </div>
+      <div class="w0-row" role="row">
+        <span role="cell">3</span>
+        <input type="number" step="any" data-k="can" aria-label="Can 3 empty mass">
+        <input type="number" step="any" data-k="wet" aria-label="Can 3 with air-dry soil">
+        <input type="number" step="any" data-k="dry" aria-label="Can 3 with oven-dry soil">
+        <output role="cell"></output>
+      </div>
+    </div>
+    <p class="hint">w = water lost ÷ oven-dry soil = (air-dry − oven-dry) ÷ (oven-dry − empty can)</p>
+    <div class="dialog-foot">
+      <span id="w0Mean" class="w0-mean">Average: —</span>
+      <div class="actions">
+        <button type="submit" value="cancel" class="btn btn-small btn-outline">Cancel</button>
+        <button type="submit" value="use" class="btn btn-small btn-primary" id="useW0" disabled>Use average</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===================== FINAL CHECK MODAL ===================== -->
+<dialog id="checkDialog" aria-labelledby="checkTitle">
+  <form method="dialog" class="dialog-body">
+    <div class="dialog-head">
+      <h2 id="checkTitle">Final check: actual bulk density and water content</h2>
+      <button type="submit" value="close" class="icon-btn" aria-label="Close">×</button>
+    </div>
+    <p class="hint">Packed containers rarely match the targets exactly. At the end of the experiment, oven-dry the soil and report the measured values.</p>
+    <ol class="mini-steps" id="checkSteps"></ol>
+    <div class="check-calc">
+      <p class="check-calc-title">Quick calculator <span class="hint" id="checkVolume"></span></p>
+      <div class="field-grid three">
+        <label class="field"><span>Empty tray (g)</span><input type="number" step="any" data-c="tray"></label>
+        <label class="field"><span>Tray + moist soil (g)</span><input type="number" step="any" data-c="wet"></label>
+        <label class="field"><span>Tray + dry soil (g)</span><input type="number" step="any" data-c="dry"></label>
+      </div>
+      <div class="check-out" id="checkOut">Enter the three masses.</div>
+      <div class="hint" id="checkFormulas"></div>
+    </div>
+    <div class="dialog-foot">
+      <span class="hint">The PDF includes a blank sheet for every container.</span>
+      <div class="actions">
+        <button type="button" class="btn btn-small btn-primary" id="checkPdfBtn">Download PDF</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Printable sheet (filled by app.js, shown only when printing / saving as PDF) -->
+<div id="printSheet" class="print-sheet" aria-hidden="true"></div>
+
+<footer class="wrap site-footer">
+  <p>Targets are nominal. Oven-dry the soil at the end of the experiment to report the actual bulk density and water content.</p>
+</footer>
+
+<script src="js/calc.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
